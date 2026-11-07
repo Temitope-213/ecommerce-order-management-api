@@ -4,13 +4,14 @@ import psycopg
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api.routes import auth
+from app.api.routes import admin, auth
 from app.domain.exceptions import EmailAlreadyExistsError, InvalidCredentialsError
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="E-Commerce & Order Management API")
 app.include_router(auth.router)
+app.include_router(admin.router)
 
 
 @app.exception_handler(EmailAlreadyExistsError)
