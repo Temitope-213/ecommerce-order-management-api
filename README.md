@@ -4,8 +4,8 @@ A RESTful backend for an online store, built with **Python, FastAPI and PostgreS
 
 This is the capstone project for **GirlsTech Unilorin Bootcamp 1.0** (Backend track).
 
-**Live API:** `https://YOUR-DEPLOYED-URL-HERE`
-**Interactive API documentation (Swagger):** `https://YOUR-DEPLOYED-URL-HERE/docs`
+**Live API:** `https://ecommerce-order-management-api-ffpg.onrender.com`
+**Interactive API documentation (Swagger):** `https://ecommerce-order-management-api-ffpg.onrender.com/docs`
 
 ---
 
