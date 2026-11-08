@@ -1,8 +1,9 @@
 from typing import List, Optional, Tuple
 
 from app.domain.entities.order import Order, OrderStatus
-from app.domain.exceptions import OrderNotFoundError
+from app.domain.exceptions import OrderNotFoundError, PaymentRequiredError
 from app.domain.repositories.order_repository import OrderRepository
+from app.domain.repositories.payment_repository import PaymentRepository
 
 
 class Checkout:
@@ -63,8 +64,15 @@ class AdminGetOrder:
 
 
 class UpdateOrderStatus:
-    def __init__(self, orders: OrderRepository):
+    def __init__(self, orders: OrderRepository, payments: PaymentRepository):
         self.orders = orders
+        self.payments = payments
 
     def execute(self, order_id: int, new_status: OrderStatus) -> Order:
+        if self.orders.get_by_id(order_id) is None:
+            raise OrderNotFoundError()
+        # Business rule: no confirming or processing without an approved payment
+        if new_status in (OrderStatus.CONFIRMED, OrderStatus.PROCESSING):
+            if not self.payments.has_approved_payment(order_id):
+                raise PaymentRequiredError()
         return self.orders.change_status(order_id, new_status)

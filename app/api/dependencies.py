@@ -26,6 +26,15 @@ from app.application.use_cases.manage_orders import (
     ListMyOrders,
     UpdateOrderStatus,
 )
+from app.application.use_cases.manage_payments import (
+    AdminGetPayment,
+    AdminListPayments,
+    ApprovePayment,
+    GetMyPayment,
+    GetReceiptFile,
+    RejectPayment,
+    SubmitPaymentProof,
+)
 from app.application.use_cases.manage_products import (
     CreateProduct,
     DeactivateProduct,
@@ -40,8 +49,10 @@ from app.domain.entities.user import User
 from app.domain.repositories.cart_repository import CartRepository
 from app.domain.repositories.category_repository import CategoryRepository
 from app.domain.repositories.order_repository import OrderRepository
+from app.domain.repositories.payment_repository import PaymentRepository
 from app.domain.repositories.product_repository import ProductRepository
 from app.domain.repositories.user_repository import UserRepository
+from app.domain.storage import ReceiptStorage
 from app.infrastructure.database.repositories.postgres_cart_repository import (
     PostgresCartRepository,
 )
@@ -51,18 +62,22 @@ from app.infrastructure.database.repositories.postgres_category_repository impor
 from app.infrastructure.database.repositories.postgres_order_repository import (
     PostgresOrderRepository,
 )
+from app.infrastructure.database.repositories.postgres_payment_repository import (
+    PostgresPaymentRepository,
+)
 from app.infrastructure.database.repositories.postgres_product_repository import (
     PostgresProductRepository,
 )
 from app.infrastructure.database.repositories.postgres_user_repository import (
     PostgresUserRepository,
 )
+from app.infrastructure.storage.local_receipt_storage import LocalReceiptStorage
 
 # Reads the "Authorization: Bearer <token>" header
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-# ---------- Repositories (the only place that chooses PostgreSQL) ----------
+# ---------- Repositories and storage (the only place that picks the implementation) ----------
 def get_user_repository() -> UserRepository:
     return PostgresUserRepository()
 
@@ -81,6 +96,14 @@ def get_cart_repository() -> CartRepository:
 
 def get_order_repository() -> OrderRepository:
     return PostgresOrderRepository()
+
+
+def get_payment_repository() -> PaymentRepository:
+    return PostgresPaymentRepository()
+
+
+def get_receipt_storage() -> ReceiptStorage:
+    return LocalReceiptStorage()
 
 
 # ---------- Use cases ----------
@@ -188,8 +211,48 @@ def admin_get_order_use_case(repo: OrderRepository = Depends(get_order_repositor
     return AdminGetOrder(repo)
 
 
-def update_order_status_use_case(repo: OrderRepository = Depends(get_order_repository)):
-    return UpdateOrderStatus(repo)
+def update_order_status_use_case(
+    orders: OrderRepository = Depends(get_order_repository),
+    payments: PaymentRepository = Depends(get_payment_repository),
+):
+    return UpdateOrderStatus(orders, payments)
+
+
+def submit_payment_proof_use_case(
+    payments: PaymentRepository = Depends(get_payment_repository),
+    storage: ReceiptStorage = Depends(get_receipt_storage),
+):
+    return SubmitPaymentProof(payments, storage)
+
+
+def get_my_payment_use_case(
+    payments: PaymentRepository = Depends(get_payment_repository),
+    orders: OrderRepository = Depends(get_order_repository),
+):
+    return GetMyPayment(payments, orders)
+
+
+def admin_list_payments_use_case(repo: PaymentRepository = Depends(get_payment_repository)):
+    return AdminListPayments(repo)
+
+
+def admin_get_payment_use_case(repo: PaymentRepository = Depends(get_payment_repository)):
+    return AdminGetPayment(repo)
+
+
+def get_receipt_file_use_case(
+    payments: PaymentRepository = Depends(get_payment_repository),
+    storage: ReceiptStorage = Depends(get_receipt_storage),
+):
+    return GetReceiptFile(payments, storage)
+
+
+def approve_payment_use_case(repo: PaymentRepository = Depends(get_payment_repository)):
+    return ApprovePayment(repo)
+
+
+def reject_payment_use_case(repo: PaymentRepository = Depends(get_payment_repository)):
+    return RejectPayment(repo)
 
 
 # ---------- Guards ----------

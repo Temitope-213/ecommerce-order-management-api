@@ -44,3 +44,19 @@ class OrderNotFoundError(Exception):
 
 class InvalidStatusTransitionError(Exception):
     """Raised when an order status change is not allowed."""
+
+
+class PaymentNotFoundError(Exception):
+    """Raised when a payment does not exist."""
+
+
+class InvalidPaymentStateError(Exception):
+    """Raised when a payment action is not allowed in the current state."""
+
+
+class InvalidReceiptError(Exception):
+    """Raised when the uploaded receipt is not a valid image."""
+
+
+class PaymentRequiredError(Exception):
+    """Raised when an order needs an approved payment first."""

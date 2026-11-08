@@ -4,7 +4,16 @@ import psycopg
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api.routes import admin, admin_orders, auth, cart, categories, orders, products
+from app.api.routes import (
+    admin,
+    admin_orders,
+    auth,
+    cart,
+    categories,
+    orders,
+    payments,
+    products,
+)
 from app.domain.exceptions import (
     CartItemNotFoundError,
     CategoryAlreadyExistsError,
@@ -13,9 +22,13 @@ from app.domain.exceptions import (
     EmptyCartError,
     InsufficientStockError,
     InvalidCredentialsError,
+    InvalidPaymentStateError,
     InvalidProductError,
+    InvalidReceiptError,
     InvalidStatusTransitionError,
     OrderNotFoundError,
+    PaymentNotFoundError,
+    PaymentRequiredError,
     ProductNotFoundError,
     SkuAlreadyExistsError,
 )
@@ -30,6 +43,8 @@ app.include_router(products.router)
 app.include_router(cart.router)
 app.include_router(orders.router)
 app.include_router(admin_orders.router)
+app.include_router(payments.router)
+app.include_router(payments.admin_router)
 
 
 def _error(status_code: int, message: str, headers=None):
@@ -94,6 +109,26 @@ async def order_not_found(request: Request, exc: OrderNotFoundError):
 @app.exception_handler(InvalidStatusTransitionError)
 async def invalid_status_transition(request: Request, exc: InvalidStatusTransitionError):
     return _error(409, str(exc))
+
+
+@app.exception_handler(PaymentNotFoundError)
+async def payment_not_found(request: Request, exc: PaymentNotFoundError):
+    return _error(404, "Payment not found")
+
+
+@app.exception_handler(InvalidPaymentStateError)
+async def invalid_payment_state(request: Request, exc: InvalidPaymentStateError):
+    return _error(409, str(exc))
+
+
+@app.exception_handler(InvalidReceiptError)
+async def invalid_receipt(request: Request, exc: InvalidReceiptError):
+    return _error(422, str(exc))
+
+
+@app.exception_handler(PaymentRequiredError)
+async def payment_required(request: Request, exc: PaymentRequiredError):
+    return _error(409, "The order needs an approved payment before this status change")
 
 
 @app.exception_handler(psycopg.OperationalError)
