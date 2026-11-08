@@ -3,6 +3,12 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.application.use_cases.get_system_info import GetSystemInfo
+from app.domain.repositories.stats_repository import StatsRepository
+from app.infrastructure.database.repositories.postgres_stats_repository import (
+    PostgresStatsRepository,
+)
+
 from app.application.use_cases.login_user import LoginUser
 from app.application.use_cases.manage_cart import (
     AddToCart,
@@ -333,3 +339,7 @@ def get_optional_user(
     if user_id is None:
         return None
     return repo.get_by_id(user_id)
+
+def get_system_info_use_case() -> GetSystemInfo:
+    repo: StatsRepository = PostgresStatsRepository()
+    return GetSystemInfo(repo)
