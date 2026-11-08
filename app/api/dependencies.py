@@ -4,6 +4,13 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.application.use_cases.login_user import LoginUser
+from app.application.use_cases.manage_cart import (
+    AddToCart,
+    ClearCart,
+    RemoveCartItem,
+    UpdateCartItem,
+    ViewCart,
+)
 from app.application.use_cases.manage_categories import (
     CreateCategory,
     DeleteCategory,
@@ -21,9 +28,13 @@ from app.application.use_cases.manage_products import (
 from app.application.use_cases.register_user import RegisterUser
 from app.core.security import decode_access_token
 from app.domain.entities.user import User
+from app.domain.repositories.cart_repository import CartRepository
 from app.domain.repositories.category_repository import CategoryRepository
 from app.domain.repositories.product_repository import ProductRepository
 from app.domain.repositories.user_repository import UserRepository
+from app.infrastructure.database.repositories.postgres_cart_repository import (
+    PostgresCartRepository,
+)
 from app.infrastructure.database.repositories.postgres_category_repository import (
     PostgresCategoryRepository,
 )
@@ -49,6 +60,10 @@ def get_category_repository() -> CategoryRepository:
 
 def get_product_repository() -> ProductRepository:
     return PostgresProductRepository()
+
+
+def get_cart_repository() -> CartRepository:
+    return PostgresCartRepository()
 
 
 # ---------- Use cases ----------
@@ -104,6 +119,32 @@ def update_stock_use_case(repo: ProductRepository = Depends(get_product_reposito
 
 def deactivate_product_use_case(repo: ProductRepository = Depends(get_product_repository)):
     return DeactivateProduct(repo)
+
+
+def add_to_cart_use_case(
+    carts: CartRepository = Depends(get_cart_repository),
+    products: ProductRepository = Depends(get_product_repository),
+):
+    return AddToCart(carts, products)
+
+
+def view_cart_use_case(carts: CartRepository = Depends(get_cart_repository)):
+    return ViewCart(carts)
+
+
+def update_cart_item_use_case(
+    carts: CartRepository = Depends(get_cart_repository),
+    products: ProductRepository = Depends(get_product_repository),
+):
+    return UpdateCartItem(carts, products)
+
+
+def remove_cart_item_use_case(carts: CartRepository = Depends(get_cart_repository)):
+    return RemoveCartItem(carts)
+
+
+def clear_cart_use_case(carts: CartRepository = Depends(get_cart_repository)):
+    return ClearCart(carts)
 
 
 # ---------- Guards ----------

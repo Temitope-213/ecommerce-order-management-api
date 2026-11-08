@@ -4,11 +4,13 @@ import psycopg
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api.routes import admin, auth, categories, products
+from app.api.routes import admin, auth, cart, categories, products
 from app.domain.exceptions import (
+    CartItemNotFoundError,
     CategoryAlreadyExistsError,
     CategoryNotFoundError,
     EmailAlreadyExistsError,
+    InsufficientStockError,
     InvalidCredentialsError,
     InvalidProductError,
     ProductNotFoundError,
@@ -22,6 +24,7 @@ app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(categories.router)
 app.include_router(products.router)
+app.include_router(cart.router)
 
 
 def _error(status_code: int, message: str, headers=None):
@@ -61,6 +64,16 @@ async def sku_exists(request: Request, exc: SkuAlreadyExistsError):
 @app.exception_handler(InvalidProductError)
 async def invalid_product(request: Request, exc: InvalidProductError):
     return _error(422, str(exc))
+
+
+@app.exception_handler(CartItemNotFoundError)
+async def cart_item_not_found(request: Request, exc: CartItemNotFoundError):
+    return _error(404, "This product is not in your cart")
+
+
+@app.exception_handler(InsufficientStockError)
+async def insufficient_stock(request: Request, exc: InsufficientStockError):
+    return _error(409, str(exc) or "Not enough stock available")
 
 
 @app.exception_handler(psycopg.OperationalError)

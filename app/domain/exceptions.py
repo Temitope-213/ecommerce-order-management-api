@@ -24,3 +24,11 @@ class SkuAlreadyExistsError(Exception):
 
 class InvalidProductError(ValueError):
     """Raised when product data breaks a business rule."""
+
+
+class CartItemNotFoundError(Exception):
+    """Raised when a product is not in the customer's cart."""
+
+
+class InsufficientStockError(Exception):
+    """Raised when the requested quantity is more than the available stock."""
