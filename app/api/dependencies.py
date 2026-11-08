@@ -17,6 +17,15 @@ from app.application.use_cases.manage_categories import (
     ListCategories,
     UpdateCategory,
 )
+from app.application.use_cases.manage_orders import (
+    AdminGetOrder,
+    AdminListOrders,
+    CancelMyOrder,
+    Checkout,
+    GetMyOrder,
+    ListMyOrders,
+    UpdateOrderStatus,
+)
 from app.application.use_cases.manage_products import (
     CreateProduct,
     DeactivateProduct,
@@ -30,6 +39,7 @@ from app.core.security import decode_access_token
 from app.domain.entities.user import User
 from app.domain.repositories.cart_repository import CartRepository
 from app.domain.repositories.category_repository import CategoryRepository
+from app.domain.repositories.order_repository import OrderRepository
 from app.domain.repositories.product_repository import ProductRepository
 from app.domain.repositories.user_repository import UserRepository
 from app.infrastructure.database.repositories.postgres_cart_repository import (
@@ -37,6 +47,9 @@ from app.infrastructure.database.repositories.postgres_cart_repository import (
 )
 from app.infrastructure.database.repositories.postgres_category_repository import (
     PostgresCategoryRepository,
+)
+from app.infrastructure.database.repositories.postgres_order_repository import (
+    PostgresOrderRepository,
 )
 from app.infrastructure.database.repositories.postgres_product_repository import (
     PostgresProductRepository,
@@ -64,6 +77,10 @@ def get_product_repository() -> ProductRepository:
 
 def get_cart_repository() -> CartRepository:
     return PostgresCartRepository()
+
+
+def get_order_repository() -> OrderRepository:
+    return PostgresOrderRepository()
 
 
 # ---------- Use cases ----------
@@ -145,6 +162,34 @@ def remove_cart_item_use_case(carts: CartRepository = Depends(get_cart_repositor
 
 def clear_cart_use_case(carts: CartRepository = Depends(get_cart_repository)):
     return ClearCart(carts)
+
+
+def checkout_use_case(repo: OrderRepository = Depends(get_order_repository)):
+    return Checkout(repo)
+
+
+def get_my_order_use_case(repo: OrderRepository = Depends(get_order_repository)):
+    return GetMyOrder(repo)
+
+
+def list_my_orders_use_case(repo: OrderRepository = Depends(get_order_repository)):
+    return ListMyOrders(repo)
+
+
+def cancel_my_order_use_case(repo: OrderRepository = Depends(get_order_repository)):
+    return CancelMyOrder(repo)
+
+
+def admin_list_orders_use_case(repo: OrderRepository = Depends(get_order_repository)):
+    return AdminListOrders(repo)
+
+
+def admin_get_order_use_case(repo: OrderRepository = Depends(get_order_repository)):
+    return AdminGetOrder(repo)
+
+
+def update_order_status_use_case(repo: OrderRepository = Depends(get_order_repository)):
+    return UpdateOrderStatus(repo)
 
 
 # ---------- Guards ----------

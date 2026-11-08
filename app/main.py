@@ -4,15 +4,18 @@ import psycopg
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api.routes import admin, auth, cart, categories, products
+from app.api.routes import admin, admin_orders, auth, cart, categories, orders, products
 from app.domain.exceptions import (
     CartItemNotFoundError,
     CategoryAlreadyExistsError,
     CategoryNotFoundError,
     EmailAlreadyExistsError,
+    EmptyCartError,
     InsufficientStockError,
     InvalidCredentialsError,
     InvalidProductError,
+    InvalidStatusTransitionError,
+    OrderNotFoundError,
     ProductNotFoundError,
     SkuAlreadyExistsError,
 )
@@ -25,6 +28,8 @@ app.include_router(admin.router)
 app.include_router(categories.router)
 app.include_router(products.router)
 app.include_router(cart.router)
+app.include_router(orders.router)
+app.include_router(admin_orders.router)
 
 
 def _error(status_code: int, message: str, headers=None):
@@ -74,6 +79,21 @@ async def cart_item_not_found(request: Request, exc: CartItemNotFoundError):
 @app.exception_handler(InsufficientStockError)
 async def insufficient_stock(request: Request, exc: InsufficientStockError):
     return _error(409, str(exc) or "Not enough stock available")
+
+
+@app.exception_handler(EmptyCartError)
+async def empty_cart(request: Request, exc: EmptyCartError):
+    return _error(400, "Your cart is empty")
+
+
+@app.exception_handler(OrderNotFoundError)
+async def order_not_found(request: Request, exc: OrderNotFoundError):
+    return _error(404, "Order not found")
+
+
+@app.exception_handler(InvalidStatusTransitionError)
+async def invalid_status_transition(request: Request, exc: InvalidStatusTransitionError):
+    return _error(409, str(exc))
 
 
 @app.exception_handler(psycopg.OperationalError)

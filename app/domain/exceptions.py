@@ -31,4 +31,16 @@ class CartItemNotFoundError(Exception):
 
 
 class InsufficientStockError(Exception):
-    """Raised when the requested quantity is more than the available stock."""
+    """Raised when stock is too low or a product is unavailable."""
+
+
+class EmptyCartError(Exception):
+    """Raised when checkout is attempted with an empty cart."""
+
+
+class OrderNotFoundError(Exception):
+    """Raised when an order does not exist or belongs to someone else."""
+
+
+class InvalidStatusTransitionError(Exception):
+    """Raised when an order status change is not allowed."""
