@@ -56,3 +56,14 @@ class PostgresCategoryRepository(CategoryRepository):
                     (category_id,),
                 )
                 return cur.fetchone() is not None
+
+
+    def get_by_id(self, category_id: int) -> Optional[Category]:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT * FROM categories WHERE id = %s",
+                    (category_id,),
+                )
+                row = cur.fetchone()
+                return Category(**row) if row else None

@@ -16,3 +16,6 @@ class CategoryRepository(ABC):
 
     @abstractmethod
     def delete(self, category_id: int) -> bool: ...
+
+    @abstractmethod
+    def get_by_id(self, category_id: int) -> Optional[Category]: ...

@@ -4,7 +4,7 @@ import psycopg
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api.routes import admin, auth, categories
+from app.api.routes import admin, auth, categories, products
 from app.domain.exceptions import (
     CategoryAlreadyExistsError,
     CategoryNotFoundError,
@@ -21,6 +21,7 @@ app = FastAPI(title="E-Commerce & Order Management API")
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(categories.router)
+app.include_router(products.router)
 
 
 def _error(status_code: int, message: str, headers=None):
