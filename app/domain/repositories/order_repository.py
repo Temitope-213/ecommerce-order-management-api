@@ -6,7 +6,9 @@ from app.domain.entities.order import Order, OrderStatus
 
 class OrderRepository(ABC):
     @abstractmethod
-    def place_order(self, user_id: int, idempotency_key: str) -> Tuple[Order, bool]:
+    def place_order(
+        self, user_id: int, idempotency_key: str, coupon_code: Optional[str] = None
+    ) -> Tuple[Order, bool]:
         """Turns the user's cart into an order in ONE transaction.
         Returns (order, created). created is False when the same
         idempotency key was already used (the original order is returned)."""

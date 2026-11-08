@@ -10,6 +10,7 @@ from app.api.routes import (
     auth,
     cart,
     categories,
+    coupons,
     orders,
     payments,
     products,
@@ -18,9 +19,12 @@ from app.domain.exceptions import (
     CartItemNotFoundError,
     CategoryAlreadyExistsError,
     CategoryNotFoundError,
+    CouponAlreadyExistsError,
+    CouponNotFoundError,
     EmailAlreadyExistsError,
     EmptyCartError,
     InsufficientStockError,
+    InvalidCouponError,
     InvalidCredentialsError,
     InvalidPaymentStateError,
     InvalidProductError,
@@ -45,6 +49,7 @@ app.include_router(orders.router)
 app.include_router(admin_orders.router)
 app.include_router(payments.router)
 app.include_router(payments.admin_router)
+app.include_router(coupons.router)
 
 
 def _error(status_code: int, message: str, headers=None):
@@ -129,6 +134,21 @@ async def invalid_receipt(request: Request, exc: InvalidReceiptError):
 @app.exception_handler(PaymentRequiredError)
 async def payment_required(request: Request, exc: PaymentRequiredError):
     return _error(409, "The order needs an approved payment before this status change")
+
+
+@app.exception_handler(CouponNotFoundError)
+async def coupon_not_found(request: Request, exc: CouponNotFoundError):
+    return _error(404, "Coupon not found")
+
+
+@app.exception_handler(CouponAlreadyExistsError)
+async def coupon_exists(request: Request, exc: CouponAlreadyExistsError):
+    return _error(409, "A coupon with this code already exists")
+
+
+@app.exception_handler(InvalidCouponError)
+async def invalid_coupon(request: Request, exc: InvalidCouponError):
+    return _error(422, str(exc))
 
 
 @app.exception_handler(psycopg.OperationalError)

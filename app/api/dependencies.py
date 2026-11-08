@@ -17,6 +17,13 @@ from app.application.use_cases.manage_categories import (
     ListCategories,
     UpdateCategory,
 )
+from app.application.use_cases.manage_coupons import (
+    CreateCoupon,
+    DeactivateCoupon,
+    GetCoupon,
+    ListCoupons,
+    UpdateCoupon,
+)
 from app.application.use_cases.manage_orders import (
     AdminGetOrder,
     AdminListOrders,
@@ -48,6 +55,7 @@ from app.core.security import decode_access_token
 from app.domain.entities.user import User
 from app.domain.repositories.cart_repository import CartRepository
 from app.domain.repositories.category_repository import CategoryRepository
+from app.domain.repositories.coupon_repository import CouponRepository
 from app.domain.repositories.order_repository import OrderRepository
 from app.domain.repositories.payment_repository import PaymentRepository
 from app.domain.repositories.product_repository import ProductRepository
@@ -58,6 +66,9 @@ from app.infrastructure.database.repositories.postgres_cart_repository import (
 )
 from app.infrastructure.database.repositories.postgres_category_repository import (
     PostgresCategoryRepository,
+)
+from app.infrastructure.database.repositories.postgres_coupon_repository import (
+    PostgresCouponRepository,
 )
 from app.infrastructure.database.repositories.postgres_order_repository import (
     PostgresOrderRepository,
@@ -100,6 +111,10 @@ def get_order_repository() -> OrderRepository:
 
 def get_payment_repository() -> PaymentRepository:
     return PostgresPaymentRepository()
+
+
+def get_coupon_repository() -> CouponRepository:
+    return PostgresCouponRepository()
 
 
 def get_receipt_storage() -> ReceiptStorage:
@@ -253,6 +268,26 @@ def approve_payment_use_case(repo: PaymentRepository = Depends(get_payment_repos
 
 def reject_payment_use_case(repo: PaymentRepository = Depends(get_payment_repository)):
     return RejectPayment(repo)
+
+
+def create_coupon_use_case(repo: CouponRepository = Depends(get_coupon_repository)):
+    return CreateCoupon(repo)
+
+
+def list_coupons_use_case(repo: CouponRepository = Depends(get_coupon_repository)):
+    return ListCoupons(repo)
+
+
+def get_coupon_use_case(repo: CouponRepository = Depends(get_coupon_repository)):
+    return GetCoupon(repo)
+
+
+def update_coupon_use_case(repo: CouponRepository = Depends(get_coupon_repository)):
+    return UpdateCoupon(repo)
+
+
+def deactivate_coupon_use_case(repo: CouponRepository = Depends(get_coupon_repository)):
+    return DeactivateCoupon(repo)
 
 
 # ---------- Guards ----------

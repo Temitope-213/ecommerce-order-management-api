@@ -1,5 +1,7 @@
+from decimal import Decimal
 from typing import List, Optional, Tuple
 
+from app.domain.entities.coupon import calculate_discount
 from app.domain.entities.order import (
     Order,
     OrderItem,
@@ -9,6 +11,7 @@ from app.domain.entities.order import (
 from app.domain.exceptions import (
     EmptyCartError,
     InsufficientStockError,
+    InvalidCouponError,
     OrderNotFoundError,
 )
 from app.domain.repositories.order_repository import OrderRepository
@@ -58,11 +61,57 @@ def _build_orders(cur, rows) -> List[Order]:
     return [_to_order(r, grouped.get(r["id"], [])) for r in rows]
 
 
+def _apply_coupon(cur, user_id: int, coupon_code: str, subtotal: Decimal):
+    """Validates the coupon and returns (coupon_id, discount).
+    Runs inside the checkout transaction. The coupon row is locked (FOR UPDATE)
+    so two customers can't both take its last remaining use."""
+    code = coupon_code.strip().upper()
+    cur.execute(
+        """
+        SELECT *, (expires_at <= NOW()) AS expired
+        FROM coupons WHERE code = %s FOR UPDATE
+        """,
+        (code,),
+    )
+    coupon = cur.fetchone()
+    if coupon is None:
+        raise InvalidCouponError("This coupon code does not exist")
+    if not coupon["is_active"]:
+        raise InvalidCouponError("This coupon is inactive")
+    if coupon["expired"]:
+        raise InvalidCouponError("This coupon has expired")
+    if subtotal < coupon["min_order_amount"]:
+        raise InvalidCouponError(
+            f"A minimum order of {coupon['min_order_amount']} is required for this coupon"
+        )
+
+    cur.execute(
+        "SELECT COUNT(*) AS used FROM coupon_usage WHERE coupon_id = %s",
+        (coupon["id"],),
+    )
+    if cur.fetchone()["used"] >= coupon["max_uses"]:
+        raise InvalidCouponError("This coupon has reached its usage limit")
+
+    cur.execute(
+        "SELECT 1 FROM coupon_usage WHERE coupon_id = %s AND user_id = %s",
+        (coupon["id"], user_id),
+    )
+    if cur.fetchone():
+        raise InvalidCouponError("You have already used this coupon")
+
+    discount = calculate_discount(
+        coupon["discount_type"], coupon["discount_value"], subtotal
+    )
+    return coupon["id"], discount
+
+
 class PostgresOrderRepository(OrderRepository):
-    def place_order(self, user_id: int, idempotency_key: str) -> Tuple[Order, bool]:
+    def place_order(
+        self, user_id: int, idempotency_key: str, coupon_code: Optional[str] = None
+    ) -> Tuple[Order, bool]:
         with get_connection() as conn:
             # Everything inside this block is ONE transaction.
-            # Any exception rolls back ALL of it (order, items, stock, cart).
+            # Any exception rolls back ALL of it (order, items, stock, coupon, cart).
             with conn.transaction():
                 with conn.cursor() as cur:
                     # 1. Lock this customer's cart so their checkouts run one at a time
@@ -123,22 +172,31 @@ class PostgresOrderRepository(OrderRepository):
                             )
                         lines.append((product, ci["quantity"]))
 
-                    subtotal = sum(p["price"] * qty for p, qty in lines)
+                    subtotal = sum((p["price"] * qty for p, qty in lines), Decimal("0"))
 
-                    # 5. Create the order
+                    # 5. Coupon (optional): validated and used inside this same transaction
+                    coupon_id = None
+                    discount = Decimal("0")
+                    if coupon_code and coupon_code.strip():
+                        coupon_id, discount = _apply_coupon(
+                            cur, user_id, coupon_code, subtotal
+                        )
+                    total = subtotal - discount   # never negative (see calculate_discount)
+
+                    # 6. Create the order
                     cur.execute(
                         """
                         INSERT INTO orders
                             (user_id, status, subtotal, discount_amount,
-                             total_amount, idempotency_key)
-                        VALUES (%s, 'PENDING', %s, 0, %s, %s)
+                             total_amount, coupon_id, idempotency_key)
+                        VALUES (%s, 'PENDING', %s, %s, %s, %s, %s)
                         RETURNING *
                         """,
-                        (user_id, subtotal, subtotal, idempotency_key),
+                        (user_id, subtotal, discount, total, coupon_id, idempotency_key),
                     )
                     order_row = cur.fetchone()
 
-                    # 6. Snapshot name and price into the order items
+                    # 7. Snapshot name and price into the order items
                     for product, qty in lines:
                         cur.execute(
                             """
@@ -150,7 +208,17 @@ class PostgresOrderRepository(OrderRepository):
                              product["price"], qty),
                         )
 
-                    # 7. Empty the cart
+                    # 8. Record the coupon use
+                    if coupon_id is not None:
+                        cur.execute(
+                            """
+                            INSERT INTO coupon_usage (coupon_id, user_id, order_id)
+                            VALUES (%s, %s, %s)
+                            """,
+                            (coupon_id, user_id, order_row["id"]),
+                        )
+
+                    # 9. Empty the cart
                     cur.execute("DELETE FROM cart_items WHERE cart_id = %s", (cart["id"],))
 
                     return _build_orders(cur, [order_row])[0], True
@@ -219,7 +287,7 @@ class PostgresOrderRepository(OrderRepository):
 
                     ensure_transition(OrderStatus(row["status"]), new_status)
 
-                    # Cancelling returns the stock
+                    # Cancelling returns the stock AND releases the coupon use
                     if new_status == OrderStatus.CANCELLED:
                         cur.execute(
                             """
@@ -234,6 +302,9 @@ class PostgresOrderRepository(OrderRepository):
                                 "UPDATE products SET stock = stock + %s WHERE id = %s",
                                 (item["quantity"], item["product_id"]),
                             )
+                        cur.execute(
+                            "DELETE FROM coupon_usage WHERE order_id = %s", (order_id,)
+                        )
 
                     cur.execute(
                         """

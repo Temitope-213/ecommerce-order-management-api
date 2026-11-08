@@ -2,9 +2,13 @@ from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.entities.order import OrderStatus
+
+
+class CheckoutRequest(BaseModel):
+    coupon_code: Optional[str] = Field(default=None, max_length=50)
 
 
 class OrderItemResponse(BaseModel):
@@ -26,6 +30,7 @@ class OrderResponse(BaseModel):
     subtotal: Decimal
     discount_amount: Decimal
     total_amount: Decimal
+    coupon_id: Optional[int] = None
     items: List[OrderItemResponse]
     created_at: datetime
     updated_at: datetime

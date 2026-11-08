@@ -10,8 +10,10 @@ class Checkout:
     def __init__(self, orders: OrderRepository):
         self.orders = orders
 
-    def execute(self, user_id: int, idempotency_key: str) -> Tuple[Order, bool]:
-        return self.orders.place_order(user_id, idempotency_key.strip())
+    def execute(
+        self, user_id: int, idempotency_key: str, coupon_code: Optional[str] = None
+    ) -> Tuple[Order, bool]:
+        return self.orders.place_order(user_id, idempotency_key.strip(), coupon_code)
 
 
 class GetMyOrder:

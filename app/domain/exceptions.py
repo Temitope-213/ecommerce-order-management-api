@@ -60,3 +60,15 @@ class InvalidReceiptError(Exception):
 
 class PaymentRequiredError(Exception):
     """Raised when an order needs an approved payment first."""
+
+
+class CouponNotFoundError(Exception):
+    """Raised when a coupon does not exist."""
+
+
+class CouponAlreadyExistsError(Exception):
+    """Raised when a coupon code is already taken."""
+
+
+class InvalidCouponError(Exception):
+    """Raised when a coupon cannot be used (expired, inactive, limit reached...)."""
